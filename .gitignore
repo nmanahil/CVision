@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.env
+
+# Uploads (user files, not needed in repo)
+uploads/*
+!uploads/.gitkeep
+
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+
+# Frontend build
+frontend/node_modules/
+frontend/dist/

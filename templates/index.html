@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cvision</title>
+</head>
+<body>
+
+<h1>Cvision 🚀</h1>
+
+<!-- ================= CV UPLOAD ================= -->
+<h2>1. Upload Your CV</h2>
+<form onsubmit="uploadCV(event)">
+    <input type="file" name="cv" required>
+    <button type="submit">Upload CV</button>
+</form>
+
+<p id="cv-status"></p>
+
+<hr>
+
+<!-- ================= JOB INPUT ================= -->
+<h2>2. Paste Job Description (Recommended)</h2>
+
+<textarea name="job_description" rows="10" cols="50"></textarea>
+
+<p>OR paste job URL (optional, may not work for some sites like LinkedIn)</p>
+<input type="text" name="job_url" style="width: 400px;">
+
+<br><br>
+<button onclick="analyzeJob(event)">Analyze Match</button>
+
+<hr>
+
+<!-- ================= RESULT ================= -->
+<pre id="result"></pre>
+
+<!-- ================= SCRIPT ================= -->
+<script>
+async function uploadCV(event) {
+    event.preventDefault();
+
+    const formData = new FormData();
+    const fileInput = document.querySelector('input[name="cv"]');
+
+    if (!fileInput.files.length) {
+        alert("Please select a CV file first.");
+        return;
+    }
+
+    formData.append("cv", fileInput.files[0]);
+
+    const response = await fetch("/upload_cv", {
+        method: "POST",
+        body: formData
+    });
+
+    const text = await response.text();
+    document.getElementById("cv-status").innerText = text;
+}
+
+
+async function analyzeJob(event) {
+    event.preventDefault();
+
+    const jobText = document.querySelector('textarea[name="job_description"]').value;
+    const jobURL = document.querySelector('input[name="job_url"]').value;
+
+    const formData = new FormData();
+
+    if (jobURL && jobURL.trim() !== "") {
+        formData.append("job_url", jobURL);
+    } else if (jobText && jobText.trim() !== "") {
+        formData.append("job_description", jobText);
+    } else {
+        alert("Please enter a job description or URL.");
+        return;
+    }
+
+    const response = await fetch("/analyze_job", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await response.json();
+
+    document.getElementById("result").innerText =
+        "Match: " + data.match_result.match_percentage + "%\n\n" +
+        "Matched Skills:\n" + data.match_result.matched_skills.join(", ") + "\n\n" +
+        "Missing Skills:\n" + data.match_result.missing_skills.join(", ") + "\n\n" +
+        "Suggestions:\n" + data.match_result.improvement_suggestions.join(", ");
+}
+</script>
+
+</body>
+</html>
