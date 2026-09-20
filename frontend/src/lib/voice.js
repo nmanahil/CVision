@@ -1,0 +1,138 @@
+/** UI copy in two voices. "pro" is the default; "genz" is an opt-in theme. */
+export const VOICES = {
+  pro: {
+    label: "Professional",
+    blurb: "Clear, polished, recruiter-grade.",
+    hero: {
+      eyebrow: "AI career intelligence",
+      title: "Know exactly how your CV",
+      titleAccent: "measures up.",
+      sub: "Upload your CV, add a target role, and get an evidence-based compatibility audit, ATS simulation and upskilling roadmap powered by Gemini.",
+    },
+    cv: {
+      title: "Your CV",
+      drop: "Drop your CV here or click to browse",
+      dropActive: "Release to upload",
+      hint: "PDF or DOCX · up to 10 MB",
+      reading: "Reading your CV…",
+      replace: "Replace CV",
+      skillsFound: (n) => `${n} skills detected`,
+    },
+    job: {
+      title: "Target role",
+      paste: "Paste text",
+      url: "Job URL",
+      placeholder: "Paste the full job description here…",
+      urlPlaceholder: "https://company.com/careers/senior-engineer",
+      sample: "Use a sample job",
+    },
+    analyze: "Analyze match",
+    analyzeNeed: "Add your CV and a job description to begin",
+    stages: [
+      "Reading your CV",
+      "Parsing the job specification",
+      "Matching skills with evidence",
+      "Simulating the ATS screen",
+      "Building your roadmap",
+    ],
+    bands: [
+      [85, "Excellent fit"],
+      [70, "Strong fit"],
+      [55, "Partial fit"],
+      [0, "Significant gaps"],
+    ],
+    tabs: { overview: "Overview", audit: "Weak points & ATS", upskill: "Upskilling", roles: "Role matches" },
+    copilot: {
+      title: "Career Co-Pilot",
+      greeting: (name) => `Hi${name ? ` ${name}` : ""}! I have your CV and target role in context. Ask me anything, or start with a prompt below.`,
+      greetingNoCv: "Upload your CV and add a target role, then I can tailor advice to you.",
+      placeholder: "Ask about your CV or the role…",
+      chips: [
+        { icon: "wand", label: "Rewrite my bullets", prompt: "Rewrite my three weakest resume bullets for this role using the XYZ formula." },
+        { icon: "mic", label: "Tough interview questions", prompt: "Give me the 5 toughest interview questions I'm likely to face for this role, with what a strong answer covers." },
+        { icon: "mail", label: "Tailored cover letter", prompt: "Write a tailored cover letter for this role using only facts from my CV." },
+        { icon: "target", label: "Explain my skill gaps", prompt: "Explain my biggest skill gaps for this role and the fastest way to close each one." },
+      ],
+    },
+    toast: {
+      copied: "Copied to clipboard",
+      saved: "Scan saved to your history",
+      exported: "Report downloaded",
+      signedIn: (n) => `Signed in as ${n}`,
+      signedOut: "Signed out",
+      retry: "Retrying analysis…",
+    },
+    signInNudge: "Sign in to save this scan to your history.",
+    roles: { title: "Roles that fit your skills", sub: "Ranked by keyword overlap with your CV." },
+  },
+
+  genz: {
+    label: "Gen Z",
+    blurb: "Casual, playful, zero corporate cringe ✨",
+    hero: {
+      eyebrow: "your career glow-up era ✨",
+      title: "find out if your CV is",
+      titleAccent: "actually cooking.",
+      sub: "drop your CV, paste the job, and get the real tea: match score, ATS check, and a plan to level up. powered by Gemini, no cap.",
+    },
+    cv: {
+      title: "your CV",
+      drop: "drop your CV here or tap to browse",
+      dropActive: "let go, i got it ✨",
+      hint: "PDF or DOCX · up to 10 MB",
+      reading: "reading your CV rn…",
+      replace: "swap CV",
+      skillsFound: (n) => `${n} skills found 💅`,
+    },
+    job: {
+      title: "the job you want",
+      paste: "paste text",
+      url: "job link",
+      placeholder: "paste the whole job description here…",
+      urlPlaceholder: "https://company.com/careers/dream-job",
+      sample: "try a sample job",
+    },
+    analyze: "check my match ✨",
+    analyzeNeed: "need your CV + the job first bestie",
+    stages: [
+      "reading your CV 👀",
+      "decoding the job post",
+      "finding receipts for your skills",
+      "running the ATS bot check 🤖",
+      "cooking up your glow-up plan",
+    ],
+    bands: [
+      [85, "literally eating this 🔥"],
+      [70, "solid, you're in the mix"],
+      [55, "kinda mid, but fixable"],
+      [0, "we've got work to do 💀"],
+    ],
+    tabs: { overview: "the vibe", audit: "red flags & ATS", upskill: "glow-up plan", roles: "roles for you" },
+    copilot: {
+      title: "Career bestie",
+      greeting: (name) => `heyyy${name ? ` ${name}` : ""}! i've got your CV and the job in my head. ask me anything or tap a prompt below 💅`,
+      greetingNoCv: "drop your CV + the job first and i'll tailor everything to you ✨",
+      placeholder: "ask me about your job hunt…",
+      chips: [
+        { icon: "wand", label: "glow up my bullets", prompt: "Rewrite my three weakest resume bullets for this role using the XYZ formula." },
+        { icon: "mic", label: "scary interview Qs", prompt: "Give me the 5 toughest interview questions I'm likely to face for this role, with what a strong answer covers." },
+        { icon: "mail", label: "cover letter, pls", prompt: "Write a tailored cover letter for this role using only facts from my CV." },
+        { icon: "target", label: "why am i missing points", prompt: "Explain my biggest skill gaps for this role and the fastest way to close each one." },
+      ],
+    },
+    toast: {
+      copied: "copied ✨",
+      saved: "saved to your history 💾",
+      exported: "report downloaded 📄",
+      signedIn: (n) => `welcome back ${n} 💖`,
+      signedOut: "signed out, see ya",
+      retry: "trying again…",
+    },
+    signInNudge: "sign in to save this scan to your history 💾",
+    roles: { title: "roles that fit your skills", sub: "ranked by how much your CV matches." },
+  },
+}
+
+export function bandLabel(voice, score) {
+  return VOICES[voice].bands.find(([min]) => score >= min)[1]
+}

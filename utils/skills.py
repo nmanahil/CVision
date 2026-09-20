@@ -1,3 +1,5 @@
+import re
+
 SKILL_CATEGORIES = {
     # --- TECH ---
     "programming": [
@@ -244,17 +246,22 @@ SKILL_ALIASES = {
 }
 
 
+def _term_pattern(term):
+    # Whole-term match: "c" must not match inside "software", and "c" must not match "c++"/"c#".
+    return re.compile(r"(?<![a-z0-9+#])" + re.escape(term) + r"(?![a-z0-9+#])")
+
+
+_ALIAS_PATTERNS = [(_term_pattern(alias), canonical) for alias, canonical in SKILL_ALIASES.items()]
+_SKILL_PATTERNS = [
+    (skill, _term_pattern(skill)) for skills in SKILL_CATEGORIES.values() for skill in skills
+]
+
+
 def extract_skills(text):
     text_lower = text.lower()
 
-    for alias, canonical in SKILL_ALIASES.items():
-        if alias in text_lower:
-            text_lower = text_lower.replace(alias, canonical)
+    for pattern, canonical in _ALIAS_PATTERNS:
+        text_lower = pattern.sub(canonical, text_lower)
 
-    found = set()
-    for category, skills in SKILL_CATEGORIES.items():
-        for skill in skills:
-            if skill in text_lower:
-                found.add(skill)
-
+    found = {skill for skill, pattern in _SKILL_PATTERNS if pattern.search(text_lower)}
     return list(found)

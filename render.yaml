@@ -3,7 +3,11 @@ services:
     name: cvision-backend
     runtime: python
     buildCommand: pip install -r requirements.txt && python -m spacy download en_core_web_sm
-    startCommand: gunicorn app:app
+    startCommand: gunicorn app:app --timeout 120 --threads 4
     envVars:
-      - key: OPENAI_API_KEY
+      - key: GEMINI_API_KEY
         sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      - key: SECRET_KEY
+        generateValue: true

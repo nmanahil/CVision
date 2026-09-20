@@ -55,5 +55,6 @@ def extract_job_skills(job_input):
     job_skills = extract_skills(text)
     return {
         "skills": job_skills,
+        "text": text,
         "scraped_text": scraped_text[:600] if scraped_text else None
     }
