@@ -11,10 +11,13 @@ import time
 import requests
 
 API_ROOT = "https://generativelanguage.googleapis.com/v1beta/models"
-DEFAULT_MODEL = "gemini-3.8-flash"
+# gemini-3.5-flash is the default: repeated checks show the newer aliases below
+# (3.8, 3.1-flash-lite) are consistently overloaded (503) on the free tier, while
+# 3.5-flash answers instantly. They're kept as fallbacks in case that changes.
+DEFAULT_MODEL = "gemini-3.5-flash"
 # Tried in order when the primary model is overloaded (503) or rate limited (429).
 FALLBACK_MODELS = [
-    "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest",
+    "gemini-flash-latest", "gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.8-flash", "gemini-3.1-flash-lite",
 ]
 OVERLOADED = {500, 502, 503, 504}  # transient: retry the model once, then move on
 QUOTA = 429  # per-model quota: no point retrying, move to the next model
