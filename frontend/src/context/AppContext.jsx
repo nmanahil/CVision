@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AppContext } from "./app-context"
-import { api, tokenStore } from "@/lib/api"
 import { VOICES } from "@/lib/voice"
 
 function read(key, fallback) {
@@ -13,8 +12,6 @@ function write(key, value) {
 export function AppProvider({ children }) {
   const [voice, setVoiceState] = useState(() => (read("cvision.voice", "pro") in VOICES ? read("cvision.voice", "pro") : "pro"))
   const [mode, setModeState] = useState(() => read("cvision.mode", "light")) // light | dark | system
-  const [user, setUser] = useState(null)
-  const [authReady, setAuthReady] = useState(!tokenStore.get())
   const [toasts, setToasts] = useState([])
   const toastId = useRef(0)
 
@@ -29,15 +26,6 @@ export function AppProvider({ children }) {
     return () => media.removeEventListener("change", apply)
   }, [voice, mode])
 
-  // Restore session
-  useEffect(() => {
-    if (!tokenStore.get()) return
-    api.me()
-      .then((d) => setUser(d.user))
-      .catch(() => tokenStore.clear())
-      .finally(() => setAuthReady(true))
-  }, [])
-
   const setVoice = useCallback((v) => { setVoiceState(v); write("cvision.voice", v) }, [])
   const setMode = useCallback((m) => { setModeState(m); write("cvision.mode", m) }, [])
 
@@ -47,18 +35,9 @@ export function AppProvider({ children }) {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200)
   }, [])
 
-  const signIn = useCallback(({ token, user: u }) => {
-    tokenStore.set(token)
-    setUser(u)
-  }, [])
-  const signOut = useCallback(() => {
-    tokenStore.clear()
-    setUser(null)
-  }, [])
-
   const value = useMemo(
-    () => ({ voice, setVoice, mode, setMode, copy: VOICES[voice], user, authReady, signIn, signOut, toasts, toast }),
-    [voice, setVoice, mode, setMode, user, authReady, signIn, signOut, toasts, toast],
+    () => ({ voice, setVoice, mode, setMode, copy: VOICES[voice], toasts, toast }),
+    [voice, setVoice, mode, setMode, toasts, toast],
   )
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

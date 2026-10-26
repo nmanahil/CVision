@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react"
-import { Check, Clock, LogIn, LogOut, Monitor, Moon, Palette, ScanSearch, Sun, Users, Sparkles, Bot } from "lucide-react"
+import { Check, Monitor, Moon, Palette, ScanSearch, Sun, Sparkles, Bot } from "lucide-react"
 import { useApp } from "@/context/app-context"
 import { VOICES } from "@/lib/voice"
-import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 function useClickOutside(ref, onOutside, active) {
@@ -89,66 +88,9 @@ function SettingsMenu() {
   )
 }
 
-function UserMenu({ onSignIn, onDemoSwitch }) {
-  const { user, signOut, toast, copy } = useApp()
-  const [demos, setDemos] = useState([])
-  useEffect(() => {
-    if (user?.is_demo) api.demoCandidates().then((d) => setDemos(d.candidates)).catch(() => {})
-  }, [user])
-
-  if (!user) {
-    return (
-      <button onClick={onSignIn} className="btn btn-primary h-10 !px-4">
-        <LogIn size={16} /> Sign in
-      </button>
-    )
-  }
-  const initials = user.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
-  return (
-    <Popover label="Account" trigger={
-      <>
-        <span className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-accent to-accent-2 text-[11px] font-bold text-white">{initials}</span>
-        <span className="hidden max-w-[110px] truncate md:inline">{user.name.split(" ")[0]}</span>
-      </>
-    }>
-      {(close) => (
-        <div className="p-2">
-          <div className="px-2 pb-3 pt-1">
-            <p className="truncate text-sm font-semibold">{user.name}</p>
-            <p className="truncate text-xs text-muted">{user.is_demo ? "Demo candidate" : user.email}</p>
-          </div>
-          {user.is_demo && demos.length > 0 && (
-            <>
-              <p className="mb-1 flex items-center gap-1.5 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted"><Users size={12} /> Switch candidate</p>
-              <div className="mb-2 space-y-0.5">
-                {demos.map((d) => (
-                  <button
-                    key={d.key}
-                    onClick={() => { close(); onDemoSwitch(d.key) }}
-                    className={cn("flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm transition hover:bg-surface-2", d.name === user.name && "bg-accent/10")}
-                  >
-                    <span><span className="block font-medium">{d.name}</span><span className="block text-xs text-muted">{d.role}</span></span>
-                    {d.name === user.name && <Check size={14} className="text-accent" />}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-          <button
-            onClick={() => { close(); signOut(); toast(copy.toast.signedOut) }}
-            className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-muted transition hover:bg-surface-2 hover:text-fg"
-          >
-            <LogOut size={15} /> Sign out
-          </button>
-        </div>
-      )}
-    </Popover>
-  )
-}
-
 const STEPS = ["Upload", "Target", "Insights"]
 
-export default function Navbar({ stage, hasCv, copilotOpen, onToggleCopilot, onOpenHistory, onSignIn, onDemoSwitch, onHome }) {
+export default function Navbar({ stage, hasCv, copilotOpen, onToggleCopilot, onHome }) {
   const active = stage === "results" ? 2 : stage === "analyzing" ? 1 : hasCv ? 1 : 0
   return (
     <header className="glass sticky top-0 z-30 border-b border-line">
@@ -184,11 +126,7 @@ export default function Navbar({ stage, hasCv, copilotOpen, onToggleCopilot, onO
               <Bot size={17} /><span className="hidden lg:inline">Co-Pilot</span>
             </button>
           )}
-          <button onClick={onOpenHistory} className="flex h-10 items-center gap-2 rounded-xl border border-line bg-surface-2/70 px-3 text-sm font-medium transition hover:border-accent/50 hover:bg-accent/10" aria-label="Scan history">
-            <Clock size={17} /><span className="hidden lg:inline">History</span>
-          </button>
           <SettingsMenu />
-          <UserMenu onSignIn={onSignIn} onDemoSwitch={onDemoSwitch} />
         </div>
       </div>
     </header>

@@ -14,7 +14,6 @@ from agents.cv_parser import process_cv  # noqa: E402
 from agents.gemini_client import GeminiError  # noqa: E402
 from agents.job_parser import extract_job_skills  # noqa: E402
 from agents.matcher_agent import match_skills, recommend_jobs  # noqa: E402
-from utils import auth, db  # noqa: E402
 
 app = Flask(__name__)
 CORS(app, expose_headers=["Content-Type"])
@@ -26,7 +25,6 @@ MAX_SESSIONS = 200
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB CV uploads
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-db.init_db()
 
 # Per-browser working state (uploaded CV, target job, latest analysis), keyed by the
 # X-Session-Id header so two people using the backend never see each other's CV.
@@ -177,21 +175,12 @@ def analyze_job():
     s["job_text"] = job_text
     s["analysis"] = analysis
 
-    scan_id = None
-    user = auth.optional_user()
-    if user and analysis["ai"]:
-        scan_id = db.save_scan(
-            user["id"], cv_filename=s["cv_filename"], cv_text=s["cv_text"], job_text=job_text,
-            skills=s["skills"], cv_score=s["cv_score"], analysis=analysis,
-        )
-
     return jsonify({
         "job_skills": parsed["skills"],
         "scraped_preview": parsed.get("scraped_text"),
         "match_result": match_result,
         "analysis": analysis,
         "ai_error": ai_error,
-        "scan_id": scan_id,
     })
 
 
@@ -239,82 +228,6 @@ def chat():
     )
 
 
-# --------------------------------------------------------------------------- auth
-
-def _auth_response(row):
-    return jsonify({"token": auth.issue_token(row["id"]), "user": auth.public_user(row)})
-
-
-@app.route("/api/auth/register", methods=["POST"])
-def register():
-    data = request.get_json(silent=True) or {}
-    row, error = auth.register(data.get("email"), data.get("name"), data.get("password"))
-    if error:
-        return jsonify({"error": error}), 400
-    return _auth_response(row), 201
-
-
-@app.route("/api/auth/login", methods=["POST"])
-def login():
-    data = request.get_json(silent=True) or {}
-    row, error = auth.login(data.get("email"), data.get("password"))
-    if error:
-        return jsonify({"error": error}), 401
-    return _auth_response(row)
-
-
-@app.route("/api/auth/demo", methods=["POST"])
-def demo_login():
-    data = request.get_json(silent=True) or {}
-    row = auth.demo_login(data.get("candidate"))
-    if not row:
-        return jsonify({"error": "Unknown demo candidate."}), 404
-    return _auth_response(row)
-
-
-@app.route("/api/auth/demo_candidates")
-def demo_candidates():
-    return jsonify({"candidates": [{"key": k, "name": v["name"], "role": v["role"]} for k, v in auth.DEMO_CANDIDATES.items()]})
-
-
-@app.route("/api/auth/me")
-@auth.login_required
-def me():
-    return jsonify({"user": auth.public_user(auth.optional_user())})
-
-
-# --------------------------------------------------------------------------- scan history
-
-@app.route("/api/history")
-@auth.login_required
-def history():
-    return jsonify({"scans": db.list_scans(auth.optional_user()["id"])})
-
-
-@app.route("/api/history/<int:scan_id>")
-@auth.login_required
-def history_item(scan_id):
-    scan = db.get_scan(auth.optional_user()["id"], scan_id)
-    if not scan:
-        return jsonify({"error": "Scan not found"}), 404
-    # Restore the working state so the Co-Pilot has this scan's CV + job as context.
-    state().update({"cv_text": scan["cv_text"], "cv_filename": scan["cv_filename"], "skills": scan["skills"],
-                    "cv_score": scan["cv_score"], "job_text": scan["job_text"], "analysis": scan["analysis"]})
-    return jsonify({
-        "scan": {k: scan[k] for k in ("id", "created_at", "job_title", "company", "cv_filename")},
-        "skills": scan["skills"],
-        "cv_score": scan["cv_score"],
-        "analysis": scan["analysis"],
-    })
-
-
-@app.route("/api/history/<int:scan_id>", methods=["DELETE"])
-@auth.login_required
-def history_delete(scan_id):
-    if not db.delete_scan(auth.optional_user()["id"], scan_id):
-        return jsonify({"error": "Scan not found"}), 404
-    return jsonify({"ok": True})
-
-
 if __name__ == "__main__":
-    app.run(debug=True)
+    # 5000 is macOS's AirPlay Receiver port (Control Center) — avoid colliding with it locally.
+    app.run(debug=True, port=int(os.environ.get("PORT", 5001)))

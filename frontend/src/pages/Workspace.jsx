@@ -1,14 +1,12 @@
 import { useCallback, useState } from "react"
 import confetti from "canvas-confetti"
-import { ArrowRight, BarChart3, Bot, Rocket, ShieldCheck } from "lucide-react"
+import { ArrowRight, BarChart3, Bot, GitCompare, Rocket, ShieldCheck } from "lucide-react"
 import Navbar from "@/components/Navbar"
 import UploadZone from "@/components/UploadZone"
 import JobInput from "@/components/JobInput"
 import AnalyzingView from "@/components/AnalyzingView"
 import ResultsView from "@/components/results/ResultsView"
 import CopilotPanel from "@/components/CopilotPanel"
-import AuthModal from "@/components/AuthModal"
-import HistoryDrawer from "@/components/HistoryDrawer"
 import CompareModal from "@/components/CompareModal"
 import { api } from "@/lib/api"
 import { analysisToMarkdown, downloadText, reportFilename } from "@/lib/report"
@@ -25,7 +23,7 @@ const FEATURES = [
 ]
 
 export default function Workspace() {
-  const { copy, signIn, toast } = useApp()
+  const { copy, toast } = useApp()
 
   const [cv, setCv] = useState(null) // { filename, skills, cv_score }
   const [uploading, setUploading] = useState(false)
@@ -39,8 +37,6 @@ export default function Workspace() {
   const [retrying, setRetrying] = useState(false)
   const [messages, setMessages] = useState([])
   const [copilotOpen, setCopilotOpen] = useState(false)
-  const [authOpen, setAuthOpen] = useState(false)
-  const [historyOpen, setHistoryOpen] = useState(false)
   const [compareOpen, setCompareOpen] = useState(false)
 
   const showResult = useCallback((data) => {
@@ -77,7 +73,6 @@ export default function Workspace() {
       if (!retry) setMessages([])
       showResult(d)
       if (d.analysis.ai && d.analysis.overall_score >= 80) setTimeout(() => confetti({ particleCount: 130, spread: 80, origin: { y: 0.55 } }), 700)
-      if (d.scan_id) toast(copy.toast.saved)
       if (d.analysis.ai && window.innerWidth >= 1024) setCopilotOpen(true)
     } catch (e) {
       if (retry) toast(e.message, "error")
@@ -87,15 +82,6 @@ export default function Workspace() {
     }
   }
 
-  async function loadScan(id) {
-    const d = await api.historyItem(id)
-    setCv({ filename: d.scan.cv_filename, skills: d.skills, cv_score: d.cv_score })
-    setJobText("")
-    setMessages([])
-    showResult({ analysis: d.analysis, scan_id: id, ai_error: null })
-    if (window.innerWidth >= 1024) setCopilotOpen(true)
-  }
-
   function newScan() {
     setStage("input")
     setResult(null)
@@ -103,14 +89,6 @@ export default function Workspace() {
     setAnalyzeError("")
     setMessages([])
     window.scrollTo({ top: 0, behavior: "smooth" })
-  }
-
-  async function demoSwitch(key) {
-    try {
-      const res = await api.demoLogin(key)
-      signIn(res)
-      toast(copy.toast.signedIn(res.user.name.split(" ")[0]))
-    } catch (e) { toast(e.message, "error") }
   }
 
   function exportReport() {
@@ -129,9 +107,6 @@ export default function Workspace() {
         hasCv={!!cv}
         copilotOpen={copilotOpen}
         onToggleCopilot={() => setCopilotOpen((o) => !o)}
-        onOpenHistory={() => setHistoryOpen(true)}
-        onSignIn={() => setAuthOpen(true)}
-        onDemoSwitch={demoSwitch}
         onHome={newScan}
       />
 
@@ -170,6 +145,11 @@ export default function Workspace() {
                   {copy.analyze} <ArrowRight size={18} />
                 </button>
                 {!canAnalyze && <p className="text-sm text-muted">{copy.analyzeNeed}</p>}
+                {cv && (
+                  <button onClick={() => setCompareOpen(true)} className="flex items-center gap-1.5 text-sm font-semibold text-accent transition hover:underline">
+                    <GitCompare size={15} /> Not sure which job? Compare several
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -182,12 +162,10 @@ export default function Workspace() {
               result={result}
               aiError={result.ai_error}
               retrying={retrying}
-              saved={!!result.scan_id}
               onRetry={() => analyze({ retry: true })}
               onNewScan={newScan}
               onExport={exportReport}
               onCompare={() => setCompareOpen(true)}
-              onSignIn={() => setAuthOpen(true)}
             />
           )}
         </div>
@@ -204,8 +182,6 @@ export default function Workspace() {
         )}
       </main>
 
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
-      <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} onLoad={loadScan} onSignIn={() => setAuthOpen(true)} />
       <CompareModal open={compareOpen} onClose={() => setCompareOpen(false)} />
     </>
   )

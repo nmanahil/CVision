@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { AlertTriangle, Briefcase, FileDown, GitCompare, Loader2, LogIn, Plus, RefreshCw, ShieldCheck, Target, Rocket, Cpu } from "lucide-react"
+import { AlertTriangle, Briefcase, FileDown, GitCompare, Loader2, Plus, RefreshCw, ShieldCheck, Target, Rocket, Cpu } from "lucide-react"
 import ScoreGauge from "./ScoreGauge"
 import DimensionBars from "./DimensionBars"
 import SkillsMatrix from "./SkillsMatrix"
@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils"
 
 const TAB_ICONS = { overview: Target, audit: ShieldCheck, upskill: Rocket, roles: Briefcase }
 
-export default function ResultsView({ result, aiError, retrying, saved, onRetry, onNewScan, onExport, onCompare, onSignIn }) {
-  const { copy, user } = useApp()
+export default function ResultsView({ result, aiError, retrying, onRetry, onNewScan, onExport, onCompare }) {
+  const { copy } = useApp()
   const { analysis } = result
   const [tab, setTab] = useState("overview")
   const [plan, setPlan] = useState(() => new Set())
@@ -54,12 +54,6 @@ export default function ResultsView({ result, aiError, retrying, saved, onRetry,
         </div>
       )}
 
-      {analysis.ai && !user && (
-        <button onClick={onSignIn} className="flex w-full items-center gap-2 rounded-2xl border border-accent/30 bg-accent/10 px-4 py-2.5 text-left text-sm transition hover:bg-accent/15">
-          <LogIn size={15} className="text-accent" /> <span className="text-muted">{copy.signInNudge}</span>
-        </button>
-      )}
-      {saved && <p className="text-xs text-good">✓ {copy.toast.saved}</p>}
 
       {/* tabs */}
       <div className="thin-scroll overflow-x-auto">

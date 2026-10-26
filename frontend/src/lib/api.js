@@ -1,7 +1,6 @@
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000"
 
 const SID_KEY = "cvision.sid"
-const TOKEN_KEY = "cvision.token"
 
 function safeStorage() {
   try { return window.localStorage } catch { return null }
@@ -17,23 +16,15 @@ export function getSessionId() {
   return sid
 }
 
-export const tokenStore = {
-  get: () => safeStorage()?.getItem(TOKEN_KEY) || null,
-  set: (t) => safeStorage()?.setItem(TOKEN_KEY, t),
-  clear: () => safeStorage()?.removeItem(TOKEN_KEY),
-}
-
 function headers(extra = {}) {
-  const h = { "X-Session-Id": getSessionId(), ...extra }
-  const token = tokenStore.get()
-  if (token) h.Authorization = `Bearer ${token}`
-  return h
+  return { "X-Session-Id": getSessionId(), ...extra }
 }
 
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, data = null) {
     super(message)
     this.status = status
+    this.data = data // full error body, e.g. { suggestion } or { needs_verification, email }
   }
 }
 
@@ -46,7 +37,7 @@ async function request(path, options = {}) {
   }
   let data = null
   try { data = await res.json() } catch { /* non-JSON body */ }
-  if (!res.ok) throw new ApiError(data?.error || `Request failed (${res.status})`, res.status)
+  if (!res.ok) throw new ApiError(data?.error || `Request failed (${res.status})`, res.status, data)
   return data
 }
 
@@ -71,16 +62,6 @@ export const api = {
   },
   recommendJobs: () => request("/recommend_jobs"),
   compareJobs: (jobs) => request("/compare_jobs", json({ jobs })),
-
-  register: (body) => request("/api/auth/register", json(body)),
-  login: (body) => request("/api/auth/login", json(body)),
-  demoLogin: (candidate) => request("/api/auth/demo", json({ candidate })),
-  demoCandidates: () => request("/api/auth/demo_candidates"),
-  me: () => request("/api/auth/me"),
-
-  history: () => request("/api/history"),
-  historyItem: (id) => request(`/api/history/${id}`),
-  deleteHistoryItem: (id) => request(`/api/history/${id}`, { method: "DELETE" }),
 }
 
 /**
