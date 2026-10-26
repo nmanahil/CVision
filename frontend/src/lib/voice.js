@@ -56,13 +56,9 @@ export const VOICES = {
     },
     toast: {
       copied: "Copied to clipboard",
-      saved: "Scan saved to your history",
       exported: "Report downloaded",
-      signedIn: (n) => `Signed in as ${n}`,
-      signedOut: "Signed out",
       retry: "Retrying analysis…",
     },
-    signInNudge: "Sign in to save this scan to your history.",
     roles: { title: "Roles that fit your skills", sub: "Ranked by keyword overlap with your CV." },
   },
 
@@ -122,13 +118,9 @@ export const VOICES = {
     },
     toast: {
       copied: "copied ✨",
-      saved: "saved to your history 💾",
       exported: "report downloaded 📄",
-      signedIn: (n) => `welcome back ${n} 💖`,
-      signedOut: "signed out, see ya",
       retry: "trying again…",
     },
-    signInNudge: "sign in to save this scan to your history 💾",
     roles: { title: "roles that fit your skills", sub: "ranked by how much your CV matches." },
   },
 }
