@@ -8,14 +8,14 @@
    Two axes: light/dark (class="dark") and voice (data-voice="pro" | "genz").
    Colours are space-separated RGB so Tailwind can apply opacity (bg-accent/20). */
 :root {
-  --bg: 246 247 251;
-  --surface: 255 255 255;
-  --surface-2: 240 242 248;
-  --line: 226 229 238;
-  --fg: 17 24 39;
-  --muted: 98 108 130;
-  --accent: 79 70 229;
-  --accent-2: 6 182 212;
+  --bg: 230 237 219;
+  --surface: 248 250 244;
+  --surface-2: 219 230 203;
+  --line: 190 206 170;
+  --fg: 24 36 24;
+  --muted: 90 107 84;
+  --accent: 27 94 52;
+  --accent-2: 13 148 74;
   --good: 16 150 100;
   --warn: 202 120 8;
   --bad: 220 38 80;
@@ -28,14 +28,14 @@
 }
 
 .dark {
-  --bg: 8 10 18;
-  --surface: 17 20 32;
-  --surface-2: 25 29 46;
-  --line: 40 46 70;
-  --fg: 236 239 248;
-  --muted: 148 158 184;
-  --accent: 129 140 248;
-  --accent-2: 34 211 238;
+  --bg: 13 18 13;
+  --surface: 22 30 22;
+  --surface-2: 30 40 30;
+  --line: 48 64 45;
+  --fg: 230 240 222;
+  --muted: 148 168 140;
+  --accent: 74 158 98;
+  --accent-2: 34 197 94;
   --good: 52 211 153;
   --warn: 251 191 36;
   --bad: 251 113 133;
@@ -43,29 +43,29 @@
   color-scheme: dark;
 }
 
-/* Gen Z voice: pinker, rounder, a little softer. Same layout, different personality. */
+/* Gen Z voice: "strawberry matcha" — strawberry pink base with matcha green as the contrast shade. */
 [data-voice="genz"] {
-  --bg: 255 246 251;
+  --bg: 255 245 243;
   --surface: 255 255 255;
-  --surface-2: 253 234 246;
-  --line: 246 210 230;
-  --fg: 72 26 58;
-  --muted: 148 92 128;
-  --accent: 214 60 166;
-  --accent-2: 150 120 250;
+  --surface-2: 235 243 224;
+  --line: 241 214 210;
+  --fg: 61 34 42;
+  --muted: 150 107 116;
+  --accent: 236 96 139;
+  --accent-2: 122 158 74;
   --radius-card: 26px;
   --radius-ctl: 16px;
-  --shadow-card: 0 1px 2px rgb(214 60 166 / 0.06), 0 14px 36px -16px rgb(214 60 166 / 0.25);
+  --shadow-card: 0 1px 2px rgb(236 96 139 / 0.06), 0 14px 36px -16px rgb(122 158 74 / 0.25);
 }
 .dark[data-voice="genz"] {
-  --bg: 24 10 28;
-  --surface: 36 16 42;
-  --surface-2: 50 22 58;
-  --line: 86 42 96;
-  --fg: 253 232 245;
-  --muted: 204 152 188;
+  --bg: 28 16 20;
+  --surface: 40 22 28;
+  --surface-2: 48 26 34;
+  --line: 94 50 62;
+  --fg: 250 228 235;
+  --muted: 198 150 165;
   --accent: 244 114 182;
-  --accent-2: 192 132 252;
+  --accent-2: 163 200 106;
   --shadow-card: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 16px 40px -20px rgb(0 0 0 / 0.7);
 }
 

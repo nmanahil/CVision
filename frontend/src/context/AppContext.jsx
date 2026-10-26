@@ -12,7 +12,7 @@ function write(key, value) {
 
 export function AppProvider({ children }) {
   const [voice, setVoiceState] = useState(() => (read("cvision.voice", "pro") in VOICES ? read("cvision.voice", "pro") : "pro"))
-  const [mode, setModeState] = useState(() => read("cvision.mode", "system")) // light | dark | system
+  const [mode, setModeState] = useState(() => read("cvision.mode", "light")) // light | dark | system
   const [user, setUser] = useState(null)
   const [authReady, setAuthReady] = useState(!tokenStore.get())
   const [toasts, setToasts] = useState([])
