@@ -77,7 +77,7 @@ Rules — accuracy matters more than flattery:
 2. matched_skills: only skills the job actually asks for AND the CV demonstrably shows. "evidence" MUST be a short VERBATIM excerpt copied from the CV (max ~160 chars). Do not paraphrase.
 3. skill_gaps: skills the job requires (or strongly prefers) that the CV does not show. Rank most important first. urgency=high if it is a stated must-have.
    time_to_acquire is a realistic estimate for a working candidate (e.g. "2-3 weeks", "3 months").
-4. Dimension scores are integers 0-100, calibrated: 90+ exceeds requirements, 70-89 solid match, 50-69 partial, below 50 clear gap.
+4. Dimension scores are integers 0-100, calibrated: 90+ exceeds requirements, 70-89 solid match, 50-69 partial, below 50 clear gap. Be conservative: never give 100, and lower a score for every listed requirement the CV does not show.
    - technical_skills: coverage of required tools/skills, weighted by importance.
    - experience_depth: years, seniority, scope and impact versus what the job expects.
    - education: degrees/certifications versus requirements (score 70-80 if none are required and the CV is reasonable).
@@ -269,6 +269,115 @@ def classify_cv(cv_text):
         prompt, CV_CHECK_SCHEMA, system=CV_CHECK_SYSTEM, temperature=0.0, thinking="low", max_tokens=200,
     )
     return bool(raw.get("is_cv")), (raw.get("reason") or "").strip()
+
+
+# ------------------------------------------------------------------ multi-job comparison
+
+MAX_COMPARE_JOB_CHARS = 5000
+
+_CMP_DIMS = _obj({k: _DIMENSION for k in DIMENSION_WEIGHTS})
+COMPARE_SCHEMA = _obj({
+    "jobs": _arr(_obj({
+        "index": _I,
+        "job_title": _S,
+        "company": _S,
+        "dimensions": _CMP_DIMS,
+        "ats_pass_probability": _I,
+        "matched_skills": _arr(_S),
+        "gaps": _arr(_obj({"skill": _S, "urgency": {"type": "STRING", "enum": ["high", "medium", "low"]}})),
+        "strengths": _S,
+        "risks": _S,
+        "verdict": _S,
+    })),
+    "key_differences": _arr(_S),
+})
+
+COMPARE_SYSTEM = """You are a senior recruiter comparing ONE candidate's CV against several job postings to find which role fits best.
+
+Rules:
+1. Score EVERY job independently with the same rubric so scores are comparable. Be conservative and realistic: reserve 90+ for a dimension that clearly EXCEEDS the requirement with evidence, never give 100, and lower a score for every listed requirement the CV does not show. Dimension scores are integers 0-100 (90+ exceeds requirements, 70-89 solid, 50-69 partial, below 50 clear gap):
+   technical_skills (required tools/skills coverage), experience_depth (years/seniority/scope vs the job), education (degrees/credentials vs requirements; 70-80 if none required), role_alignment (past titles/responsibilities vs this role and domain).
+2. Ground everything in the CV text and each job text. Never invent experience, skills, employers or numbers. Only list a skill as matched if the CV demonstrably shows it.
+3. Return exactly one entry per job, with "index" equal to the job's number as given (0-based). Do not skip, merge or reorder jobs.
+4. matched_skills: up to 8 skills the job wants that the CV shows. gaps: up to 6 required/preferred skills the CV lacks, most important first.
+5. strengths: 1 sentence on why you fit this job. risks: 1 sentence on the biggest obstacle to getting it. verdict: 1 sentence summary.
+6. key_differences: 2-4 short bullets contrasting the jobs from the candidate's point of view. Refer to each job by its label EXACTLY as given (never "Job 0" or "Job 1"). DO NOT declare an overall winner — the scores decide that.
+7. Address the candidate as "you". Professional tone. Output JSON only."""
+
+
+def _keyword_dims(match):
+    pct = _clamp(match.get("match_percentage", 0))
+    return {k: {"score": pct if k == "technical_skills" else 0, "rationale": ""} for k in DIMENSION_WEIGHTS}
+
+
+def compare_jobs(cv_text, jobs, cv_skills):
+    """jobs: [{"label": str, "text": str}]. Returns a ranked comparison dict; raises GeminiError on failure."""
+    blocks = []
+    for i, job in enumerate(jobs):
+        blocks.append(f"=== JOB {i} (label: {job['label']}) ===\n{job['text'][:MAX_COMPARE_JOB_CHARS]}")
+    prompt = (
+        "=== CANDIDATE CV ===\n" + cv_text[:MAX_CV_CHARS] +
+        f"\n\nCV skills detected (rule-based, verify against the text): {', '.join(cv_skills) or 'none'}\n\n" +
+        "\n\n".join(blocks)
+    )
+    raw, model = gemini_client.generate_json(prompt, COMPARE_SCHEMA, system=COMPARE_SYSTEM, temperature=0.2, thinking="medium", max_tokens=8192)
+
+    by_index = {}
+    for entry in raw.get("jobs") or []:
+        if isinstance(entry.get("index"), int) and 0 <= entry["index"] < len(jobs):
+            by_index.setdefault(entry["index"], entry)
+    if len(by_index) != len(jobs):
+        raise gemini_client.GeminiError("Gemini returned an incomplete comparison.")
+
+    results = []
+    for i, job in enumerate(jobs):
+        e = by_index[i]
+        dims = {}
+        for key in DIMENSION_WEIGHTS:
+            d = (e.get("dimensions") or {}).get(key) or {}
+            dims[key] = {"score": _clamp(d.get("score")), "rationale": (d.get("rationale") or "").strip()}
+        results.append({
+            "index": i,
+            "label": job["label"],
+            "job_title": (e.get("job_title") or "").strip(),
+            "company": (e.get("company") or "").strip(),
+            "overall_score": _clamp(sum(dims[k]["score"] * w for k, w in DIMENSION_WEIGHTS.items())),
+            "ats_pass_probability": _clamp(e.get("ats_pass_probability")),
+            "dimensions": dims,
+            "matched_skills": [x.strip() for x in (e.get("matched_skills") or []) if x and x.strip()][:8],
+            "gaps": [g for g in (e.get("gaps") or []) if g.get("skill")][:6],
+            "strengths": (e.get("strengths") or "").strip(),
+            "risks": (e.get("risks") or "").strip(),
+            "verdict": (e.get("verdict") or "").strip(),
+        })
+    return _rank(results, [d.strip() for d in raw.get("key_differences") or [] if d and d.strip()], True, model)
+
+
+def keyword_compare(cv_skills, jobs, match_fn, skills_fn):
+    """Fallback when Gemini is unavailable: rank by keyword overlap only."""
+    results = []
+    for i, job in enumerate(jobs):
+        m = match_fn(cv_skills, skills_fn(job["text"]))
+        results.append({
+            "index": i, "label": job["label"], "job_title": "", "company": "",
+            "overall_score": _clamp(m["match_percentage"]), "ats_pass_probability": 0,
+            "dimensions": _keyword_dims(m),
+            "matched_skills": m["matched_skills"][:8],
+            "gaps": [{"skill": s, "urgency": "medium"} for s in m["missing_skills"][:6]],
+            "strengths": "", "risks": "", "verdict": "",
+        })
+    return _rank(results, [], False, None)
+
+
+def _rank(results, key_differences, ai, model):
+    ordered = sorted(results, key=lambda r: (-r["overall_score"], -r["dimensions"]["technical_skills"]["score"], r["index"]))
+    for rank, r in enumerate(ordered, start=1):
+        r["rank"] = rank
+    margin = ordered[0]["overall_score"] - ordered[1]["overall_score"] if len(ordered) > 1 else 0
+    return {
+        "ai": ai, "model": model, "comparisons": ordered, "winner_index": ordered[0]["index"],
+        "margin": margin, "close_call": margin < 5, "key_differences": key_differences,
+    }
 
 
 TONES = {

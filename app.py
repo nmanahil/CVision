@@ -134,22 +134,35 @@ def compare_jobs():
     if not s["skills"]:
         return jsonify({"error": "Upload CV first"}), 400
 
-    data = request.get_json(silent=True)
-    if not data or "jobs" not in data:
-        return jsonify({"error": "No jobs provided"}), 400
+    data = request.get_json(silent=True) or {}
+    raw_jobs = [j for j in (data.get("jobs") or []) if isinstance(j, dict) and (j.get("description") or "").strip()]
+    if len(raw_jobs) < 2:
+        return jsonify({"error": "Add at least two jobs to compare."}), 400
+    if len(raw_jobs) > 5:
+        return jsonify({"error": "You can compare up to 5 jobs at a time."}), 400
 
-    results = []
-    for job in data["jobs"]:
-        parsed = extract_job_skills(job.get("description", ""))
-        match = match_skills(s["skills"], parsed["skills"])
-        results.append({
-            "label": job.get("label") or f"Job {len(results) + 1}",
-            "match_percentage": match["match_percentage"],
-            "matched_skills": match["matched_skills"],
-            "missing_skills": match["missing_skills"],
-        })
+    jobs = []
+    for i, j in enumerate(raw_jobs, start=1):
+        text = extract_job_skills(j["description"])["text"] or ""
+        label = (j.get("label") or "").strip() or f"Job {i}"
+        if len(text.strip()) < 40:
+            why = "couldn't be read from that link — paste the description text instead" if j["description"].strip().startswith("http") else "is too short to compare"
+            return jsonify({"error": f"“{label}” {why}."}), 400
+        jobs.append({"label": label, "text": text})
 
-    return jsonify({"comparisons": results})
+    ai_error = None
+    result = None
+    if gemini_client.is_configured():
+        try:
+            result = career_ai.compare_jobs(s["cv_text"], jobs, s["skills"])
+        except GeminiError as exc:
+            ai_error = str(exc)
+    else:
+        ai_error = "GEMINI_API_KEY is not configured on the backend."
+    if result is None:
+        result = career_ai.keyword_compare(s["skills"], jobs, match_skills, lambda t: extract_job_skills(t)["skills"])
+    result["ai_error"] = ai_error
+    return jsonify(result)
 
 
 @app.route("/analyze_job", methods=["POST"])
