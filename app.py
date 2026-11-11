@@ -87,7 +87,18 @@ def upload_cv():
         return jsonify({"error": "That file could not be read as a valid CV. Please upload a real PDF or DOCX resume."}), 400
 
     if not skills:
+        os.remove(filepath)
         return jsonify({"error": "No CV skills were detected. Please upload a clearer resume PDF or DOCX."}), 400
+
+    if gemini_client.is_configured():
+        try:
+            is_cv, reason = career_ai.classify_cv(cv_text)
+        except GeminiError:
+            is_cv, reason = True, ""  # classifier hiccup shouldn't block a real upload
+        if not is_cv:
+            os.remove(filepath)
+            detail = f" ({reason})" if reason else ""
+            return jsonify({"error": f"This doesn't look like a CV/resume{detail}. Please upload your actual resume as a PDF or DOCX."}), 400
 
     s = state()
     s.update({"cv_text": cv_text, "cv_filename": safe_filename, "skills": skills, "cv_score": cv_score,

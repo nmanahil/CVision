@@ -247,6 +247,30 @@ def fallback_analysis(match_result, cv_score):
     }
 
 
+# ------------------------------------------------------------------ CV sanity check
+
+MAX_CV_CHECK_CHARS = 4000
+
+CV_CHECK_SCHEMA = _obj({"is_cv": {"type": "BOOLEAN"}, "reason": _S})
+
+CV_CHECK_SYSTEM = (
+    "You decide whether a piece of extracted document text is a CV/resume: a document a person would submit "
+    "for a job application, describing their work experience, education, and/or skills. Judge the whole "
+    "document's purpose, not just whether it happens to mention a skill-sounding word. Reply false for "
+    "essays, articles, invoices, contracts, slide decks, random text, or any other non-CV document, even if "
+    "it briefly mentions technologies or jobs. 'reason' is one short sentence explaining the verdict."
+)
+
+
+def classify_cv(cv_text):
+    """Ask Gemini whether extracted text is actually a CV. Returns (is_cv, reason)."""
+    prompt = f"Extracted document text:\n\n{cv_text[:MAX_CV_CHECK_CHARS]}"
+    raw, _ = gemini_client.generate_json(
+        prompt, CV_CHECK_SCHEMA, system=CV_CHECK_SYSTEM, temperature=0.0, thinking="low", max_tokens=200,
+    )
+    return bool(raw.get("is_cv")), (raw.get("reason") or "").strip()
+
+
 TONES = {
     "professional": "Tone: professional, clear and encouraging. No slang, no emoji.",
     "genz": (
